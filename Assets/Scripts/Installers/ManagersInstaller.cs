@@ -9,8 +9,9 @@ public class ManagersInstaller : ScriptableObjectInstaller<ManagersInstaller>
     [SerializeField] private RankingConfig m_RankingConfig;
     [SerializeField] private StatsConfig m_StatsConfig;
     [SerializeField] private TerrainConfig m_TerrainConfig;
+    [SerializeField] private BoosterModeConfig m_BoosterModeConfig;
 
-    
+
     public override void InstallBindings()
     {
         Container.BindInterfacesAndSelfTo<BattleRoyaleService>().FromSubContainerResolve().ByMethod(InstallBattleRoyaleManager).AsSingle();
@@ -18,8 +19,16 @@ public class ManagersInstaller : ScriptableObjectInstaller<ManagersInstaller>
         Container.BindInterfacesAndSelfTo<RankingService>().FromSubContainerResolve().ByMethod(InstallRankingManager).AsSingle();
         Container.BindInterfacesAndSelfTo<StatsService>().FromSubContainerResolve().ByMethod(InstallStatsManager).AsSingle();
         Container.BindInterfacesAndSelfTo<TerrainService>().FromSubContainerResolve().ByMethod(InstallTerrainManager).AsSingle();
+        Container.BindInterfacesAndSelfTo<GameModeService>().FromSubContainerResolve().ByMethod(InstallGameModeManager).AsSingle();
+        Container.BindInterfacesAndSelfTo<FeatureService>().AsSingle();
         Container.Bind<IMapService>().To<MapService>().AsSingle();
         Container.Bind<ISceneEventsService>().To<SceneEventsService>().AsSingle();
+    }
+
+    private void InstallGameModeManager(DiContainer subContainer)
+    {
+        subContainer.Bind<GameModeService>().AsSingle();
+        subContainer.Bind<BoosterModeConfig>().FromInstance(m_BoosterModeConfig).AsSingle();
     }
 
     private void InstallBattleRoyaleManager(DiContainer subContainer)

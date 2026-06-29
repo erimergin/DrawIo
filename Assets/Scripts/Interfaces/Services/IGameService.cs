@@ -19,6 +19,7 @@ public interface IGameService
     int ComputeCurrentPlayerColor(bool b, int i);
     void SetColor(int computeCurrentPlayerColor);
     void ChangePhase(GamePhase loading);
+    void StartBoosterMode();
     int ComputeCurrentPlayeBrushIndex(bool b, int i);
     void SkipRV();
     void TryRevive();

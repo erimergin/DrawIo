@@ -82,6 +82,7 @@ public abstract class Player : MappedObject, IDrawLine
 	public bool                 isEliminated { get { return m_IsEliminated; } }
     public bool                 isDead { get { return m_IsDead; } }
 	protected float 			m_SizeFactor = 1.0f;
+	protected float 			m_SpeedFactor = 1.0f;
 
 	// Frags
 	protected int				m_FragCount = 0;
@@ -470,7 +471,7 @@ public abstract class Player : MappedObject, IDrawLine
 
 	protected float GetSpeed()
 	{
-		return Mathf.Clamp(m_Speed, c_MinSpeed, c_MaxSpeed);
+		return Mathf.Clamp(m_Speed * m_SpeedFactor, c_MinSpeed, c_MaxSpeed * m_SpeedFactor);
 	}
 
 	public float GetSize()
@@ -496,6 +497,10 @@ public abstract class Player : MappedObject, IDrawLine
 		    case EBonus.SIZE_UP:
                 m_SizeFactor = 1.0f;
 			    break;
+
+		    case EBonus.SPEED_UP:
+                m_SpeedFactor = 1.0f;
+			    break;
 		}
 	}
 
@@ -505,6 +510,14 @@ public abstract class Player : MappedObject, IDrawLine
 		if (m_SizePowerUpCoroutine != null)
 			StopCoroutine(m_SizePowerUpCoroutine);
 		m_SizePowerUpCoroutine = StartCoroutine (BonusCoroutine(EBonus.SIZE_UP, _Duration));
+	}
+
+	public virtual void AddSpeedUp(float _Factor, float _Duration)
+	{
+		m_SpeedFactor = _Factor;
+		if (m_SpeedPowerUpCoroutine != null)
+			StopCoroutine(m_SpeedPowerUpCoroutine);
+		m_SpeedPowerUpCoroutine = StartCoroutine (BonusCoroutine(EBonus.SPEED_UP, _Duration));
 	}
 
 	#endregion   

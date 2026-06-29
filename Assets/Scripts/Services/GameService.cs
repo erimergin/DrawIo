@@ -84,16 +84,25 @@ public class GameService : IGameService
     private GameConfig m_GameConfig;
     private DiContainer m_Container;
     private ISceneEventsService m_SceneEventsService;
-    
+    private IGameModeService m_GameModeService;
+    private IFeatureService m_FeatureService;
+
+    private bool BoosterModeActive =>
+        m_FeatureService.IsEnabled(GameFeature.BoosterMode) &&
+        m_GameModeService.CurrentMode == GameMode.Booster;
+
     [Inject]
     public void Construct(GameConfig gameConfig, IStatsService statsService, IBattleRoyaleService battleRoyaleService,
-        ITerrainService terrainService, DiContainer container, ISceneEventsService sceneEventsService)
+        ITerrainService terrainService, DiContainer container, ISceneEventsService sceneEventsService,
+        IGameModeService gameModeService, IFeatureService featureService)
     {
         m_GameConfig = gameConfig;
         m_StatsService = statsService;
         m_BattleRoyaleService = battleRoyaleService;
         m_TerrainService = terrainService;
         m_Container = container;
+        m_GameModeService = gameModeService;
+        m_FeatureService = featureService;
         m_PlayerSkinID = 1;
         m_Players = new List<Player>();
         m_Objects = new List<GameObject>();
@@ -200,6 +209,7 @@ public class GameService : IGameService
         switch (_GamePhase)
         {
             case GamePhase.MAIN_MENU:
+                m_GameModeService.SetMode(GameMode.Classic);
                 Randomize();
                 SetColor(ComputeCurrentPlayerColor(true, 0));
                 break;
@@ -224,22 +234,30 @@ public class GameService : IGameService
                 break;
 
             case GamePhase.END:
-                int playerScore = Mathf.RoundToInt(m_Players[0].percent * 100.0f);
-                m_StatsService.TryToSetBestScore(playerScore);
+                if (BoosterModeActive)
+                {
+                    m_GameModeService.AdvanceBoosterLevel();
+                    PreEndView.Instance.LaunchPreEnd();
+                }
+                else
+                {
+                    int playerScore = Mathf.RoundToInt(m_Players[0].percent * 100.0f);
+                    m_StatsService.TryToSetBestScore(playerScore);
 
-                int rankingScore = -1; // Difficulty down by default
-                int playerRank = m_BattleRoyaleService.GetHumanPlayer().m_Rank;
+                    int rankingScore = -1; // Difficulty down by default
+                    int playerRank = m_BattleRoyaleService.GetHumanPlayer().m_Rank;
 
-                if (playerRank == 0) // Best, then increase difficulty
-                    rankingScore = 1;
-                else if (playerRank >= 2) // Second or third, then stay at same difficulty
-                    rankingScore = 0;
+                    if (playerRank == 0) // Best, then increase difficulty
+                        rankingScore = 1;
+                    else if (playerRank >= 2) // Second or third, then stay at same difficulty
+                        rankingScore = 0;
 
-                m_StatsService.AddGameResult(rankingScore);
-                int xp = m_XPByRank[playerRank];
-                m_StatsService.SetLastXP(xp);
-                PreEndView.Instance.LaunchPreEnd();
-                m_StatsService.GainXP();
+                    m_StatsService.AddGameResult(rankingScore);
+                    int xp = m_XPByRank[playerRank];
+                    m_StatsService.SetLastXP(xp);
+                    PreEndView.Instance.LaunchPreEnd();
+                    m_StatsService.GainXP();
+                }
                 break;
         }
 
@@ -247,6 +265,15 @@ public class GameService : IGameService
 
         if (onGamePhaseChanged != null)
             onGamePhaseChanged.Invoke(_GamePhase);
+    }
+
+    public void StartBoosterMode()
+    {
+        if (currentPhase != GamePhase.MAIN_MENU)
+            return;
+
+        m_GameModeService.SetMode(GameMode.Booster);
+        ChangePhase(GamePhase.LOADING);
     }
 
     public void AddMapObject(GameObject _Object)
@@ -368,10 +395,28 @@ public class GameService : IGameService
 
         if (Time.time - m_LastPowerUpTime > m_PowerUpRate)
         {
-            m_PowerUpRate = Random.Range(c_MinPowerUpRate, c_MaxPowerUpRate);
             m_LastPowerUpTime = Time.time;
 
-            PowerUpData powerUpData = m_PowerUps[Random.Range(0, m_PowerUps.Count)];
+            List<PowerUpData> activePowerUps = m_PowerUps;
+            float minRate = c_MinPowerUpRate;
+            float maxRate = c_MaxPowerUpRate;
+
+            if (BoosterModeActive)
+            {
+                BoosterLevelSetup setup = m_GameModeService.GetCurrentBoosterSetup();
+                List<PowerUpData> boosterPowerUps = m_GameModeService.GetActivePowerUps();
+                if (boosterPowerUps != null)
+                    activePowerUps = boosterPowerUps;
+                if (setup != null)
+                {
+                    minRate = setup.m_MinSpawnRate;
+                    maxRate = setup.m_MaxSpawnRate;
+                }
+            }
+
+            m_PowerUpRate = Random.Range(minRate, maxRate);
+
+            PowerUpData powerUpData = activePowerUps[Random.Range(0, activePowerUps.Count)];
             PopObjectRandomly(powerUpData.m_Prefab);
         }
 

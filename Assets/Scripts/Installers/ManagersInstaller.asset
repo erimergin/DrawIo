@@ -18,3 +18,5 @@ MonoBehaviour:
   m_RankingConfig: {fileID: 11400000, guid: bdb9bc2c305a348f0b0213df9bf0edc6, type: 2}
   m_StatsConfig: {fileID: 11400000, guid: d9950dc5ee1f14d2fbfd237b4a53d03f, type: 2}
   m_TerrainConfig: {fileID: 11400000, guid: b67010bd2b07f4c42ab71410b464190c, type: 2}
+  m_BoosterModeConfig: {fileID: 11400000, guid: 47cb2e71b090f714e869a4be43b700f9,
+    type: 2}
